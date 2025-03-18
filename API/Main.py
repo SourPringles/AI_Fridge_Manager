@@ -6,6 +6,7 @@ import signal
 from ultralytics import YOLO
 from pyzbar.pyzbar import decode
 from datetime import datetime
+import json
 
 app = Flask(__name__)
 
@@ -14,9 +15,6 @@ model = YOLO('yolov8n.pt')
 
 # 식료품 및 위치 정보 저장소 (임시)
 inventory = {}
-
-# 이전 이미지 저장 경로 설정
-PREV_IMAGE_PATH = "./prev_image.jpg"
 
 # 중복된 이름을 방지하는 함수
 def generate_unique_name(base_name, inventory):
@@ -48,6 +46,29 @@ def compare_inventories(prev_data, curr_data):
     }
     return added, removed, moved
 
+DATA_FILE = "inventory_data.json"  # JSON 파일 경로
+
+def load_inventory():
+    """
+    JSON 파일에서 냉장고 데이터를 로드합니다.
+    파일이 없으면 빈 딕셔너리를 반환합니다.
+    """
+    if os.path.exists(DATA_FILE):
+        with open(DATA_FILE, "r") as file:
+            try:
+                return json.load(file)
+            except json.JSONDecodeError:
+                # JSON 파일이 손상된 경우 빈 딕셔너리를 반환
+                return {}
+    return {}
+
+def save_inventory(data):
+    """
+    냉장고 데이터를 JSON 파일에 저장합니다.
+    """
+    with open(DATA_FILE, "w") as file:
+        json.dump(data, file, indent=4)
+
 @app.route('/upload', methods=['POST'])
 def upload():
     curr_img = request.files.get('curr_image')
@@ -58,12 +79,9 @@ def upload():
 
     curr_image = cv2.imdecode(np.frombuffer(curr_img.read(), np.uint8), cv2.IMREAD_COLOR)
 
-    # 이전 이미지 로드
-    if os.path.exists(PREV_IMAGE_PATH):
-        prev_image = cv2.imread(PREV_IMAGE_PATH)
-        prev_data = detect_qr_codes(prev_image)
-    else:
-        prev_data = {}
+    # 이전 데이터 로드 (JSON 파일에서 불러오기)
+    inventory = load_inventory()  # JSON 파일에서 현재 인벤토리 로드
+    prev_data = inventory.copy()  # 이전 데이터를 불러옴
 
     # QR코드 인식 (현재 이미지)
     curr_data = detect_qr_codes(curr_image)
@@ -71,25 +89,35 @@ def upload():
     # 이름 변경 처리
     if name_changes:
         name_changes = eval(name_changes)  # string to dict
+
         for old_name, new_name in name_changes.items():
             if new_name in inventory:
                 new_name = generate_unique_name(new_name, inventory)
             if old_name in curr_data:
                 curr_data[new_name] = curr_data.pop(old_name)
 
-    # 현재 이미지를 저장하여 다음 비교에 사용
-    cv2.imwrite(PREV_IMAGE_PATH, curr_image)
-
     # 데이터 비교
     added, removed, moved = compare_inventories(prev_data, curr_data)
+
+    # 현재 시각 추가
+    current_timestamp = datetime.now().strftime("%Y-%m-%d-%H-%M")  # 타임스탬프 형식 변경
 
     # 전체 인벤토리 갱신
     for key, value in removed.items():
         if key in inventory:
-            inventory[key]["timestamp"] = value["timestamp"]
+            inventory[key]["timestamp"] = current_timestamp
+
+    for key, value in added.items():
+        added[key]["timestamp"] = current_timestamp
+
+    for key, data in moved.items():
+        data["current"]["timestamp"] = current_timestamp
 
     inventory.update(added)
     inventory.update({key: data["current"] for key, data in moved.items()})
+
+    # 변경된 데이터를 JSON 파일에 저장
+    save_inventory(inventory)
 
     return jsonify({
         "added": added,
@@ -98,9 +126,21 @@ def upload():
         "inventory": inventory
     })
 
+
 @app.route('/inventory', methods=['GET'])
 def get_inventory():
-    return jsonify(inventory)
+    # JSON 파일에서 데이터를 로드
+    inventory = load_inventory()
+
+    inventory_with_timestamps = {
+        key: {
+            "x": value["x"],
+            "y": value["y"],
+            "timestamp": value.get("timestamp", "N/A")
+        }
+        for key, value in inventory.items()
+    }
+    return jsonify(inventory_with_timestamps)
 
 @app.route('/shutdown', methods=['POST'])
 def shutdown():
