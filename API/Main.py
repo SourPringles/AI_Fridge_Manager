@@ -39,13 +39,13 @@ def compare_inventories(prev_data, curr_data, tolerance=5):
     이전 데이터와 현재 데이터를 비교하여 추가, 제거, 이동 항목을 반환합니다.
     tolerance: 좌표 비교 시 허용되는 오차 (픽셀 단위)
     """
-    added = {key: curr_data[key] | {"timestamp": datetime.now().isoformat()} for key in curr_data if key not in prev_data}
-    removed = {key: prev_data[key] | {"timestamp": datetime.now().isoformat()} for key in prev_data if key not in curr_data}
+    added = {key: curr_data[key] | {"lastModified": datetime.now().strftime("%Y-%m-%d %H:%M:%S")} for key in curr_data if key not in prev_data}
+    removed = {key: prev_data[key] | {"lastModified": datetime.now().strftime("%Y-%m-%d %H:%M:%S")} for key in prev_data if key not in curr_data}
     moved = {
         key: {
             "previous": {"x": prev_data[key]["x"], "y": prev_data[key]["y"]},
             "current": {"x": curr_data[key]["x"], "y": curr_data[key]["y"]},
-            "timestamp": datetime.now().isoformat()
+            "lastModified": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }
         for key in curr_data
         if key in prev_data and (
@@ -98,7 +98,7 @@ def upload():
     added, removed, moved = compare_inventories(prev_data, curr_data)
 
     # 현재 시각 추가
-    current_timestamp = datetime.now().strftime("%Y-%m-%d-%H:%M")  # 타임스탬프 형식 변경
+    current_timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # 타임스탬프 형식 변경
 
     # 전체 인벤토리 갱신
     for qr_text, value in removed.items():
@@ -110,7 +110,7 @@ def upload():
             inventory[qr_text] = {
                 "x": value["x"],
                 "y": value["y"],
-                "timestamp": current_timestamp,
+                "lastModified": current_timestamp,
                 "nickname": generate_unique_nickname("New Item", inventory),
                 "qr_code": qr_text
             }
@@ -119,7 +119,7 @@ def upload():
         if qr_text in inventory:
             inventory[qr_text]["x"] = data["current"]["x"]
             inventory[qr_text]["y"] = data["current"]["y"]
-            inventory[qr_text]["timestamp"] = current_timestamp
+            inventory[qr_text]["lastModified"] = current_timestamp
 
     # 변경된 데이터를 JSON 파일에 저장
     save_inventory(inventory)
@@ -140,7 +140,7 @@ def get_inventory():
             "nickname": value.get("nickname", "N/A"),
             "x": value["x"],
             "y": value["y"],
-            "timestamp": value.get("timestamp", "N/A"),
+            "lastModified": value.get("lastModified", "N/A"),
             "qr_code": value.get("qr_code", "N/A")  # QR 텍스트 포함
         }
         for key, value in inventory.items()
@@ -150,6 +150,7 @@ def get_inventory():
 @app.route('/rename/<qr_code>/<new_name>', methods=['POST'])
 def rename(qr_code, new_name):
     """
+    *WIP
     별명 변경 엔드포인트.
     URL 경로에서 qr_code와 new_name을 받아 inventory를 업데이트합니다.
     """
@@ -187,6 +188,10 @@ def reset_inventory():
 
 @app.route('/shutdown', methods=['POST'])
 def shutdown():
+    """
+    *WIP
+    서버 종료 엔드포인트
+    """
     os.kill(os.getpid(), signal.SIGINT)
     return "Server shutting down..."
 
