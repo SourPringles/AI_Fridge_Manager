@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify
-from db.userdata_db import delete_inventory, load_inventory
+from db import delete_inventory, load_inventory
 
 reset_bp = Blueprint('reset', __name__)
 

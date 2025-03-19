@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 from utils.helpers import generate_unique_nickname
 from utils.qr_utils import detect_qr_codes, compare_inventories
-from db.userdata_db import load_inventory, save_inventory, delete_inventory
+from db import load_inventory, save_inventory, delete_inventory
 from datetime import datetime
 import cv2
 import numpy as np
@@ -53,6 +53,7 @@ def upload():
                 "nickname": inventory[qr_text]["nickname"]
             }
             save_inventory(qr_text, updated_item)
+
 
     return jsonify({
         "added": added,

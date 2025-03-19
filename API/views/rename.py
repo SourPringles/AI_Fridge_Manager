@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from db.userdata_db import load_inventory, save_inventory
+from db import load_inventory, save_inventory
 
 rename_bp = Blueprint('rename', __name__)
 
