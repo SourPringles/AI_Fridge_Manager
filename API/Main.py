@@ -186,8 +186,8 @@ def shutdown():
     os.kill(os.getpid(), signal.SIGINT)
     return "Server shutting down..."
 
-if __name__ == '__main__':
-    app.run(debug=True)
-
 #if __name__ == '__main__':
-#    app.run(host='0.0.0.0', port=9064, debug=True)
+#    app.run(debug=True)
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=9064, debug=True)
