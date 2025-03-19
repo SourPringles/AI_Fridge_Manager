@@ -141,7 +141,7 @@ def get_inventory():
 @app.route('/rename/<qr_code>/<new_name>', methods=['POST'])
 def rename(qr_code, new_name):
     """
-    별명명 변경 엔드포인트.
+    별명 변경 엔드포인트.
     URL 경로에서 qr_code와 new_name을 받아 inventory를 업데이트합니다.
     """
     # JSON 파일에서 데이터 로드
