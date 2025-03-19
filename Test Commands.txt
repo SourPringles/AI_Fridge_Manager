@@ -1,3 +1,5 @@
-curl -X POST http://localhost:9064/shutdown                                             | ShutDown
-curl -X GET http://localhost:9064/inventory                                             | Return Current Inventory
-curl -X POST -F "curr_image=@path_to_updated_image.jpg" http://localhost:9064/upload    | Upload Image
+ShutDown        |   curl -X POST http://localhost:port/shutdown                                             
+getCurrentData  |   curl -X GET http://localhost:port/inventory                                          
+uploadImage     |   curl -X POST -F "curr_image=@path_to_updated_image.jpg" http://localhost:port/upload  
+resetData       |   curl -X POST http://localhost:port/reset
+renameNickname  |   curl -X POST http://localhost:port/rename/"qr_code"/"new_name"

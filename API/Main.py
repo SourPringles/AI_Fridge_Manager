@@ -34,7 +34,11 @@ def detect_qr_codes(image):
         qr_data[qr_text] = {'x': x, 'y': y}  # QR 텍스트를 키로 사용
     return qr_data
 
-def compare_inventories(prev_data, curr_data):
+def compare_inventories(prev_data, curr_data, tolerance=5):
+    """
+    이전 데이터와 현재 데이터를 비교하여 추가, 제거, 이동 항목을 반환합니다.
+    tolerance: 좌표 비교 시 허용되는 오차 (픽셀 단위)
+    """
     added = {key: curr_data[key] | {"timestamp": datetime.now().isoformat()} for key in curr_data if key not in prev_data}
     removed = {key: prev_data[key] | {"timestamp": datetime.now().isoformat()} for key in prev_data if key not in curr_data}
     moved = {
@@ -42,8 +46,12 @@ def compare_inventories(prev_data, curr_data):
             "previous": {"x": prev_data[key]["x"], "y": prev_data[key]["y"]},
             "current": {"x": curr_data[key]["x"], "y": curr_data[key]["y"]},
             "timestamp": datetime.now().isoformat()
-        } for key in curr_data 
-        if key in prev_data and curr_data[key] != prev_data[key]
+        }
+        for key in curr_data
+        if key in prev_data and (
+            abs(curr_data[key]["x"] - prev_data[key]["x"]) > tolerance or
+            abs(curr_data[key]["y"] - prev_data[key]["y"]) > tolerance
+        )
     }
     return added, removed, moved
 
@@ -73,7 +81,6 @@ def save_inventory(data):
 @app.route('/upload', methods=['POST'])
 def upload():
     curr_img = request.files.get('curr_image')
-    name_changes = request.form.get('name_changes')
 
     if not curr_img:
         return jsonify({"error": "Current image is required."}), 400
@@ -96,20 +103,23 @@ def upload():
     # 전체 인벤토리 갱신
     for qr_text, value in removed.items():
         if qr_text in inventory:
-            inventory[qr_text]["timestamp"] = current_timestamp
+            del inventory[qr_text]  # JSON에서 해당 데이터 삭제
 
     for qr_text, value in added.items():
-        added[qr_text]["timestamp"] = current_timestamp
-        # 고유한 닉네임 생성
-        added[qr_text]["nickname"] = generate_unique_nickname("New Item", inventory)
-        added[qr_text]["qr_code"] = qr_text  # QR 텍스트를 저장
+        if qr_text not in inventory:
+            inventory[qr_text] = {
+                "x": value["x"],
+                "y": value["y"],
+                "timestamp": current_timestamp,
+                "nickname": generate_unique_nickname("New Item", inventory),
+                "qr_code": qr_text
+            }
 
     for qr_text, data in moved.items():
-        data["current"]["timestamp"] = current_timestamp
-        data["current"]["qr_code"] = qr_text  # QR 텍스트를 저장
-
-    inventory.update(added)
-    inventory.update({qr_text: data["current"] for qr_text, data in moved.items()})
+        if qr_text in inventory:
+            inventory[qr_text]["x"] = data["current"]["x"]
+            inventory[qr_text]["y"] = data["current"]["y"]
+            inventory[qr_text]["timestamp"] = current_timestamp
 
     # 변경된 데이터를 JSON 파일에 저장
     save_inventory(inventory)
@@ -118,9 +128,8 @@ def upload():
         "added": added,
         "removed": removed,
         "moved": moved,
-        "inventory": inventory
     })
-    
+
 @app.route('/inventory', methods=['GET'])
 def get_inventory():
     # JSON 파일에서 데이터를 로드
