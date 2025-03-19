@@ -128,6 +128,7 @@ def get_inventory():
 
     inventory_with_timestamps = {
         key: {
+            "nickname": value.get("nickname", "N/A"),
             "x": value["x"],
             "y": value["y"],
             "timestamp": value.get("timestamp", "N/A"),
@@ -137,38 +138,32 @@ def get_inventory():
     }
     return jsonify(inventory_with_timestamps)
 
-@app.route('/rename', methods=['POST'])
-def rename():
+@app.route('/rename/<qr_code>/<new_name>', methods=['POST'])
+def rename(qr_code, new_name):
     """
-    이름 변경 엔드포인트.
-    요청 데이터에서 old_name과 new_name을 받아 inventory를 업데이트합니다.
+    별명명 변경 엔드포인트.
+    URL 경로에서 qr_code와 new_name을 받아 inventory를 업데이트합니다.
     """
-    data = request.get_json()
-    old_name = data.get("old_name")
-    new_name = data.get("new_name")
-
-    if not old_name or not new_name:
-        return jsonify({"error": "Both 'old_name' and 'new_name' are required."}), 400
-
     # JSON 파일에서 데이터 로드
     inventory = load_inventory()
 
-    # 이름 변경 처리
-    if old_name in inventory:
-        if new_name in inventory:
-            # 중복 이름 방지
-            new_name = generate_unique_nickname(new_name, inventory)
-        inventory[new_name] = inventory.pop(old_name)
+    # QR 코드로 항목 찾기
+    item_to_update = None
+    for key, value in inventory.items():
+        if value.get("qr_code") == qr_code:
+            item_to_update = key
+            break
 
-        # QR 텍스트는 그대로 유지
-        inventory[new_name]["qr_code"] = old_name
+    if item_to_update:
+        # 닉네임 업데이트
+        inventory[item_to_update]["nickname"] = new_name
 
         # 변경된 데이터를 JSON 파일에 저장
         save_inventory(inventory)
 
-        return jsonify({"message": "Name changed successfully.", "inventory": inventory})
+        return jsonify({"message": "Nickname updated successfully.", "inventory": inventory})
     else:
-        return jsonify({"error": f"Item with name '{old_name}' not found."}), 404
+        return jsonify({"error": f"Item with QR code '{qr_code}' not found."}), 404
 
 @app.route('/reset', methods=['POST'])
 def reset_inventory():
@@ -186,8 +181,8 @@ def shutdown():
     os.kill(os.getpid(), signal.SIGINT)
     return "Server shutting down..."
 
-#if __name__ == '__main__':
-#    app.run(debug=True)
-
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=9064, debug=True)
+    app.run(debug=True)
+
+#if __name__ == '__main__':
+#    app.run(host='0.0.0.0', port=9064, debug=True)
