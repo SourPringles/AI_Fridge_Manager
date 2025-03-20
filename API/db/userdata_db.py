@@ -1,6 +1,6 @@
 import sqlite3
 
-DB_FILE = "userdata.db"
+DB_FILE = "API/db/userdata.db"
 
 def init_db():
     """
