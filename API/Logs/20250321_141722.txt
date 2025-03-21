@@ -1,0 +1,4 @@
+Upload endpoint called at 20250321_141722
+Added: {}
+Removed: {}
+Moved: {'test2': {'previous': {'x': 32, 'y': 444}, 'current': {'x': 70, 'y': 307}, 'lastModified': '2025-03-21 14:17:22'}, 'test1': {'previous': {'x': 218, 'y': 23}, 'current': {'x': 31, 'y': 148}, 'lastModified': '2025-03-21 14:17:22'}, 'test3': {'previous': {'x': 36, 'y': 32}, 'current': {'x': 179, 'y': 11}, 'lastModified': '2025-03-21 14:17:22'}}
