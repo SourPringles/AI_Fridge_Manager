@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import 'backend/backend_service.dart';
 import 'settings_dialog.dart';
 import 'backend/location_service.dart';
@@ -19,10 +18,7 @@ class MainApp extends StatelessWidget {
         return Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 600, maxHeight: 800),
-            child: ClipRect(
-              // ClipRect를 추가하여 크기 제한을 강제 적용
-              child: child,
-            ),
+            child: ClipRect(child: child),
           ),
         );
       },
@@ -38,10 +34,9 @@ class MainPage extends StatefulWidget {
 }
 
 class _MainPageState extends State<MainPage> {
-  final BackendService _backendService =
-      BackendService(); // BackendService 인스턴스 생성
-  List<Map<String, String>> _items = []; // 서버에서 가져온 데이터 저장
-  bool _isFirstLoad = true; // 첫 로드 여부 확인
+  final BackendService _backendService = BackendService();
+  List<Map<String, String>> _items = [];
+  bool _isFirstLoad = true;
 
   @override
   void initState() {
@@ -49,7 +44,7 @@ class _MainPageState extends State<MainPage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _showSettingsDialog(
         onClose: () {
-          _fetchInventory(); // 설정창 닫힌 후 새로고침 수행
+          _fetchInventory();
         },
       );
     });
@@ -59,7 +54,7 @@ class _MainPageState extends State<MainPage> {
     final items = await _backendService.fetchInventory();
     setState(() {
       _items = items;
-      _isFirstLoad = false; // 첫 로드 완료
+      _isFirstLoad = false;
     });
   }
 
@@ -70,7 +65,7 @@ class _MainPageState extends State<MainPage> {
         return SettingsDialog(backendService: _backendService);
       },
     ).then((_) {
-      if (onClose != null) onClose(); // 설정창 닫힌 후 콜백 실행
+      if (onClose != null) onClose();
     });
   }
 
@@ -82,7 +77,7 @@ class _MainPageState extends State<MainPage> {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: _fetchInventory, // 새로고침 버튼
+            onPressed: _fetchInventory,
           ),
           IconButton(
             icon: const Icon(Icons.settings),
@@ -111,24 +106,34 @@ class _MainPageState extends State<MainPage> {
                               ),
                               leading: const Icon(Icons.kitchen),
                               trailing: const Icon(Icons.arrow_forward),
-                              onTap: () {
-                                print("Tapped on ${item["nickname"]}");
+                              onTap: () async {
+                                await Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder:
+                                        (context) => LocationPage(
+                                          backendService: _backendService,
+                                          highlightedItem: item,
+                                        ),
+                                  ),
+                                );
+                                _fetchInventory(); // 복귀 후 새로고침
                               },
                             );
                           },
                         )),
           ),
           ElevatedButton(
-            onPressed: () {
-              Navigator.push(
+            onPressed: () async {
+              await Navigator.push(
                 context,
                 MaterialPageRoute(
                   builder:
-                      (context) => LocationPage(
-                        backendService: _backendService, // BackendService 전달
-                      ),
+                      (context) =>
+                          LocationPage(backendService: _backendService),
                 ),
               );
+              _fetchInventory(); // 복귀 후 새로고침
             },
             child: const Text('물건 위치 보기'),
           ),
@@ -140,8 +145,13 @@ class _MainPageState extends State<MainPage> {
 
 class LocationPage extends StatefulWidget {
   final BackendService backendService;
+  final Map<String, String>? highlightedItem;
 
-  const LocationPage({super.key, required this.backendService});
+  const LocationPage({
+    super.key,
+    required this.backendService,
+    this.highlightedItem,
+  });
 
   @override
   State<LocationPage> createState() => _LocationPageState();
@@ -149,24 +159,35 @@ class LocationPage extends StatefulWidget {
 
 class _LocationPageState extends State<LocationPage> {
   late final LocationService _locationService;
-  List<Map<String, String>> _items = []; // 서버에서 가져온 데이터 저장
-  bool _isLoading = true; // 로딩 상태 확인
+  List<Map<String, String>> _items = [];
+  bool _isLoading = true;
+  Map<String, String>? _highlightedItem; // 현재 강조된 물건
 
   @override
   void initState() {
     super.initState();
-    _locationService = LocationService(
-      widget.backendService,
-    ); // 전달받은 BackendService 사용
-    _fetchLocations(); // 페이지 로드 시 데이터 가져오기
+    _locationService = LocationService(widget.backendService);
+    _highlightedItem = widget.highlightedItem; // 초기 강조된 물건 설정
+    _fetchLocations();
   }
 
   Future<void> _fetchLocations() async {
     final items = await _locationService.fetchLocations();
     setState(() {
       _items = items;
-      _isLoading = false; // 로딩 완료
+      _isLoading = false;
     });
+  }
+
+  void _clearHighlight() {
+    setState(() {
+      _highlightedItem = null; // 강조된 물건 초기화
+    });
+  }
+
+  Future<void> _updateNickname(String qrCode, String newNickname) async {
+    await widget.backendService.updateNickname(qrCode, newNickname);
+    await _fetchLocations();
   }
 
   @override
@@ -177,63 +198,48 @@ class _LocationPageState extends State<LocationPage> {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
-            Navigator.pop(context); // 메인 페이지로 돌아가기
+            Navigator.pop(context);
           },
         ),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: _fetchLocations, // 새로고침 버튼
+            onPressed: _fetchLocations,
           ),
         ],
       ),
       body:
           _isLoading
-              ? const Center(child: CircularProgressIndicator()) // 로딩 중 표시
+              ? const Center(child: CircularProgressIndicator())
               : Stack(
                 children:
                     _items.map((item) {
                       final double x = double.tryParse(item["x"] ?? "0") ?? 0;
                       final double y = double.tryParse(item["y"] ?? "0") ?? 0;
+                      final bool isHighlighted =
+                          _highlightedItem != null &&
+                          _highlightedItem!["qr_code"] == item["qr_code"];
                       return Positioned(
                         left: x,
                         top: y,
                         child: GestureDetector(
                           onTap: () {
-                            showDialog(
-                              context: context,
-                              builder: (BuildContext context) {
-                                return AlertDialog(
-                                  title: Text(item["nickname"] ?? "Unknown"),
-                                  content: Text(
-                                    "QR Code: ${item["qr_code"] ?? "Unknown"}\n"
-                                    "Last Modified: ${item["lastModified"] ?? "Unknown"}",
-                                  ),
-                                  actions: [
-                                    TextButton(
-                                      onPressed: () {
-                                        Navigator.pop(context);
-                                      },
-                                      child: const Text('닫기'),
-                                    ),
-                                  ],
-                                );
-                              },
-                            );
+                            _showItemDetailsDialog(item);
+                            _clearHighlight(); // 강조 초기화
                           },
                           child: Container(
-                            width: 50,
-                            height: 50,
+                            width: 90, // 가로 90
+                            height: 30, // 세로 30
                             decoration: BoxDecoration(
-                              color: Colors.blue,
-                              shape: BoxShape.circle,
+                              color: isHighlighted ? Colors.red : Colors.blue,
+                              shape: BoxShape.rectangle, // 사각형 형태
                             ),
                             child: Center(
                               child: Text(
                                 item["nickname"] ?? "",
                                 style: const TextStyle(
                                   color: Colors.white,
-                                  fontSize: 10,
+                                  fontSize: 12, // 텍스트 크기 조정
                                 ),
                                 textAlign: TextAlign.center,
                               ),
@@ -243,6 +249,73 @@ class _LocationPageState extends State<LocationPage> {
                       );
                     }).toList(),
               ),
+    );
+  }
+
+  void _showItemDetailsDialog(Map<String, String> item) {
+    final TextEditingController nicknameController = TextEditingController(
+      text: item["nickname"],
+    );
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(item["nickname"] ?? "Unknown"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Table(
+                columnWidths: const {
+                  0: IntrinsicColumnWidth(),
+                  1: FlexColumnWidth(),
+                },
+                children: [
+                  TableRow(
+                    children: [
+                      const Text('QR Code:'),
+                      Text(item["qr_code"] ?? "Unknown"),
+                    ],
+                  ),
+                  TableRow(
+                    children: [
+                      const Text('Last Modified:'),
+                      Text(item["lastModified"] ?? "Unknown"),
+                    ],
+                  ),
+                  TableRow(
+                    children: [
+                      const Text('Position:'),
+                      Text("(${item["x"]}, ${item["y"]})"),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              TextField(
+                controller: nicknameController,
+                decoration: const InputDecoration(labelText: 'Edit Nickname'),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: const Text('닫기'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final newNickname = nicknameController.text;
+                await _updateNickname(item["qr_code"] ?? "", newNickname);
+                Navigator.pop(context);
+              },
+              child: const Text('수정'),
+            ),
+          ],
+        );
+      },
     );
   }
 }

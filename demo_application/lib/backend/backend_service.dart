@@ -94,4 +94,26 @@ class BackendService {
       print('Error uploading item: $e');
     }
   }
+
+  Future<void> updateNickname(String qrCode, String newNickname) async {
+    Uri url;
+    if (isLocalHost) {
+      url = Uri.parse("http://localhost:5000/rename/$qrCode/$newNickname");
+    } else {
+      url = Uri.parse(
+        "http://$serverAddress:$port/rename/$qrCode/$newNickname",
+      );
+    }
+
+    try {
+      final response = await http.post(url);
+      if (response.statusCode == 200) {
+        print('Nickname updated successfully');
+      } else {
+        print('Failed to update nickname: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error updating nickname: $e');
+    }
+  }
 }
