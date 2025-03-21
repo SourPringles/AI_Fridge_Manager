@@ -32,6 +32,14 @@ class _SettingsDialogState extends State<SettingsDialog> {
     }
   }
 
+  void _applySettings() {
+    widget.backendService.updateServerSettings(
+      isLocalHost: widget.backendService.isLocalHost,
+      serverAddress: _serverController.text,
+      port: _portController.text,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
@@ -81,6 +89,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
               const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: () async {
+                  _applySettings(); // 설정 적용
                   await widget.backendService.connectionSetting();
                 },
                 child: const Text('Test Connection'),
@@ -92,6 +101,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
       actions: [
         TextButton(
           onPressed: () {
+            _applySettings(); // 설정 적용
             Navigator.pop(context);
           },
           child: const Text('닫기'),

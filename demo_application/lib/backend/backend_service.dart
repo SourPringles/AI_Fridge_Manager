@@ -6,6 +6,16 @@ class BackendService {
   String serverAddress = "25.28.228.203"; // 기본 서버 주소
   String port = "9064"; // 기본 포트
 
+  void updateServerSettings({
+    required bool isLocalHost,
+    required String serverAddress,
+    required String port,
+  }) {
+    this.isLocalHost = isLocalHost;
+    this.serverAddress = serverAddress;
+    this.port = port;
+  }
+
   Future<void> connectionSetting() async {
     Uri url;
     if (isLocalHost) {
