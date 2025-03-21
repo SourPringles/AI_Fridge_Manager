@@ -5,6 +5,7 @@ from db import load_inventory, save_inventory, delete_inventory
 from datetime import datetime
 import cv2
 import numpy as np
+import os
 
 upload_bp = Blueprint('upload', __name__)
 
@@ -54,6 +55,17 @@ def upload():
             }
             save_inventory(qr_text, updated_item)
 
+    # 로그 저장
+    logs_dir = os.path.join(os.getcwd(), 'Logs')
+    os.makedirs(logs_dir, exist_ok=True)
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    log_file_path = os.path.join(logs_dir, f'{timestamp}.txt')
+
+    with open(log_file_path, 'w') as log_file:
+        log_file.write(f"Upload endpoint called at {timestamp}\n")
+        log_file.write(f"Added: {added}\n")
+        log_file.write(f"Removed: {removed}\n")
+        log_file.write(f"Moved: {moved}\n")
 
     return jsonify({
         "added": added,
