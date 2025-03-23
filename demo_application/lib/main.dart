@@ -37,6 +37,7 @@ class _MainPageState extends State<MainPage> {
   final BackendService _backendService = BackendService();
   List<Map<String, String>> _items = [];
   bool _isFirstLoad = true;
+  //String _connectionStatus = ""; // 연결 상태 메시지
 
   @override
   void initState() {

@@ -13,6 +13,8 @@ class SettingsDialog extends StatefulWidget {
 class _SettingsDialogState extends State<SettingsDialog> {
   late TextEditingController _serverController;
   late TextEditingController _portController;
+  String _connectionStatus = ""; // 연결 상태 메시지
+  bool _isTestingConnection = false; // 연결 테스트 중 상태
 
   @override
   void initState() {
@@ -38,6 +40,21 @@ class _SettingsDialogState extends State<SettingsDialog> {
       serverAddress: _serverController.text,
       port: _portController.text,
     );
+  }
+
+  Future<void> _checkConnection() async {
+    setState(() {
+      _isTestingConnection = true;
+      _connectionStatus = ""; // 상태 초기화
+    });
+
+    final isConnected = await widget.backendService.connectionSetting();
+
+    setState(() {
+      _isTestingConnection = false;
+      _connectionStatus =
+          isConnected ? "Connection Successful" : "Connection Failed";
+    });
   }
 
   @override
@@ -88,12 +105,29 @@ class _SettingsDialogState extends State<SettingsDialog> {
               ),
               const SizedBox(height: 20),
               ElevatedButton(
-                onPressed: () async {
-                  _applySettings(); // 설정 적용
-                  await widget.backendService.connectionSetting();
-                },
-                child: const Text('Test Connection'),
+                onPressed:
+                    _isTestingConnection
+                        ? null // 비활성화 상태
+                        : () async {
+                          _applySettings(); // 설정 적용
+                          await _checkConnection();
+                        },
+                child: Text(_isTestingConnection ? "연결중" : "Test Connection"),
               ),
+              if (_connectionStatus.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 10),
+                  child: Text(
+                    _connectionStatus,
+                    style: TextStyle(
+                      color:
+                          _connectionStatus == "Connection Successful"
+                              ? Colors.green
+                              : Colors.red,
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
             ],
           );
         },

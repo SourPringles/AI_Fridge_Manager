@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 
 class BackendService {
   bool isLocalHost = false; // 스위치 상태를 저장하는 변수
-  String serverAddress = "25.28.228.203"; // 기본 서버 주소
+  String serverAddress = "25.28.228.203"; // 기��� 서버 주소
   String port = "9064"; // 기본 포트
 
   void updateServerSettings({
@@ -16,24 +16,20 @@ class BackendService {
     this.port = port;
   }
 
-  Future<void> connectionSetting() async {
+  Future<bool> connectionSetting() async {
     Uri url;
     if (isLocalHost) {
-      print('LocalHost is ON');
-      url = Uri.parse("http://localhost:5000/inventory");
+      url = Uri.parse("http://localhost:5000/connectionTest");
     } else {
-      print('LocalHost is OFF');
-      url = Uri.parse("http://$serverAddress:$port/inventory");
+      url = Uri.parse("http://$serverAddress:$port/connectionTest");
     }
-
-    print('Fetching from URL: $url'); // URL 확인 로그 추가
 
     try {
       final response = await http.get(url);
-      print('Response status: ${response.statusCode}');
-      print('Response body: ${response.body}');
+      return response.statusCode == 200;
     } catch (e) {
       print('Error: $e');
+      return false;
     }
   }
 
