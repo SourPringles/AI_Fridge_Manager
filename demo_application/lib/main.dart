@@ -128,23 +128,48 @@ class _MainPageState extends State<MainPage> {
                           },
                         )),
           ),
-          ElevatedButton(
-            onPressed: () async {
-              await Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder:
-                      (context) =>
-                          LocationPage(backendService: _backendService),
-                ),
-              );
-              _fetchInventory(); // 복귀 후 새로고침
-            },
-            child: const Text('물건 위치 보기'),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              ElevatedButton(
+                onPressed: () async {
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder:
+                          (context) =>
+                              LocationPage(backendService: _backendService),
+                    ),
+                  );
+                  _fetchInventory(); // 복귀 후 새로고침
+                },
+                child: const Text('물건 위치 보기'),
+              ),
+              ElevatedButton(
+                onPressed: _uploadImage,
+                child: const Text('이미지 업로드'),
+              ),
+            ],
           ),
         ],
       ),
     );
+  }
+
+  Future<void> _uploadImage() async {
+    final result = await _backendService.uploadImage(context);
+    if (!mounted) return; // 위젯이 마운트되어 있는지 확인
+    if (result) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('이미지 업로드 성공')));
+    } else {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('이미지 업로드 실패')));
+    }
+
+    await _fetchInventory();
   }
 }
 

@@ -1,5 +1,8 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
+import 'package:image_picker/image_picker.dart';
+import 'package:flutter/material.dart';
 
 class BackendService {
   bool isLocalHost = false; // 스위치 상태를 저장하는 변수
@@ -110,6 +113,46 @@ class BackendService {
       }
     } catch (e) {
       print('Error updating nickname: $e');
+    }
+  }
+
+  Future<bool> uploadImage(BuildContext context) async {
+    try {
+      // 이미지 선택
+      final picker = ImagePicker();
+      final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+
+      if (pickedFile == null) {
+        print('No image selected');
+        return false; // 이미지 선택 취소 시 false 반환
+      }
+
+      final file = File(pickedFile.path);
+
+      // 서버 URL 설정
+      Uri url;
+      if (isLocalHost) {
+        url = Uri.parse("http://localhost:5000/upload");
+      } else {
+        url = Uri.parse("http://$serverAddress:$port/upload");
+      }
+
+      // 이미지 업로드
+      final request = http.MultipartRequest('POST', url)
+        ..files.add(await http.MultipartFile.fromPath('curr_image', file.path));
+
+      final response = await request.send();
+
+      if (response.statusCode == 200) {
+        print('Image uploaded successfully');
+        return true; // 성공 시 true 반환
+      } else {
+        print('Failed to upload image: ${response.statusCode}');
+        return false; // 실패 시 false 반환
+      }
+    } catch (e) {
+      print('Error uploading image: $e');
+      return false; // 실패 시 false 반환
     }
   }
 }
