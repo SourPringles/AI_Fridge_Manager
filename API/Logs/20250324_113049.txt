@@ -1,0 +1,4 @@
+Upload endpoint called at 20250324_113049
+Added: {'test1': {'x': 59, 'y': 324, 'lastModified': '2025-03-24 11:30:49'}}
+Removed: {}
+Moved: {}

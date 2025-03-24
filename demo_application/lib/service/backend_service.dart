@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 
 class BackendService {
   bool isLocalHost = false; // 스위치 상태를 저장하는 변수
-  String serverAddress = "25.28.228.203"; // 기��� 서버 주소
+  String serverAddress = "25.28.228.203"; // 기본 서버 주소
   String port = "9064"; // 기본 포트
 
   void updateServerSettings({

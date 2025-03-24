@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'backend/backend_service.dart';
+import 'service/backend_service.dart';
 
 class SettingsDialog extends StatefulWidget {
   final BackendService backendService;
@@ -15,6 +15,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
   late TextEditingController _portController;
   String _connectionStatus = ""; // 연결 상태 메시지
   bool _isTestingConnection = false; // 연결 테스트 중 상태
+  bool _isCloseButtonEnabled = false; // 닫기 버튼 활성화 상태
 
   @override
   void initState() {
@@ -46,6 +47,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
     setState(() {
       _isTestingConnection = true;
       _connectionStatus = ""; // 상태 초기화
+      _isCloseButtonEnabled = false; // 닫기 버튼 비활성화
     });
 
     final isConnected = await widget.backendService.connectionSetting();
@@ -54,6 +56,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
       _isTestingConnection = false;
       _connectionStatus =
           isConnected ? "Connection Successful" : "Connection Failed";
+      _isCloseButtonEnabled = isConnected; // 연결 성공 시 닫기 버튼 활성화
     });
   }
 
@@ -134,10 +137,13 @@ class _SettingsDialogState extends State<SettingsDialog> {
       ),
       actions: [
         TextButton(
-          onPressed: () {
-            _applySettings(); // 설정 적용
-            Navigator.pop(context);
-          },
+          onPressed:
+              _isCloseButtonEnabled
+                  ? () {
+                    _applySettings(); // 설정 적용
+                    Navigator.pop(context);
+                  }
+                  : null, // 비활성화 상태
           child: const Text('닫기'),
         ),
       ],

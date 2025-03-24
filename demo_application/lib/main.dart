@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'backend/backend_service.dart';
+import 'service/backend_service.dart';
 import 'settings_dialog.dart';
-import 'backend/location_service.dart';
+import 'service/location_service.dart';
 
 void main() {
   runApp(const MainApp());
@@ -17,7 +17,10 @@ class MainApp extends StatelessWidget {
       builder: (context, child) {
         return Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 600, maxHeight: 800),
+            constraints: const BoxConstraints(
+              maxWidth: 600, // 가로 600
+              maxHeight: 1200, // 세로 1200
+            ),
             child: ClipRect(child: child),
           ),
         );
@@ -62,6 +65,7 @@ class _MainPageState extends State<MainPage> {
   void _showSettingsDialog({VoidCallback? onClose}) {
     showDialog(
       context: context,
+      barrierDismissible: false, // 주변 여백 클릭으로 닫히지 않도록 설정
       builder: (BuildContext context) {
         return SettingsDialog(backendService: _backendService);
       },
