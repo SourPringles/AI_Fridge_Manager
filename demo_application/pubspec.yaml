@@ -1,5 +1,5 @@
-name: debug_application
-description: "debug_application"
+name: demo_application
+description: "demo_application"
 publish_to: 'none'
 version: 0.1.0
 
