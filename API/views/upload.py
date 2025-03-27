@@ -1,10 +1,11 @@
 from flask import Blueprint, request, jsonify
-from utils.helpers import generate_unique_nickname
+from utils.helpers import generate_unique_nickname, save_log
 from utils.qr_utils import detect_qr_codes, compare_inventories
 from db import load_inventory, save_inventory, delete_inventory
 from datetime import datetime
 import cv2
 import numpy as np
+import os
 
 upload_bp = Blueprint('upload', __name__)
 
@@ -54,6 +55,8 @@ def upload():
             }
             save_inventory(qr_text, updated_item)
 
+    # 로그 저장
+    save_log("Upload endpoint called", added=added, removed=removed, moved=moved)
 
     return jsonify({
         "added": added,
