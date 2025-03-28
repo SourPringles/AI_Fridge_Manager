@@ -1,6 +1,11 @@
+import os
 import sqlite3
 
-DB_FILE = "userdata.db"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_FILE = os.path.join(BASE_DIR, "userdata.db")
+
+print(BASE_DIR)
+print(DB_FILE)
 
 def init_db():
     """

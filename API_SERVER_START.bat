@@ -2,8 +2,8 @@
 
 call project_env\Scripts\activate
 
-cd /d %~dp0
+cd /d %~dp0/API
 
-python API\app.py
+python app.py
 
 pause

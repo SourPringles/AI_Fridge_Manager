@@ -1,0 +1,4 @@
+Upload endpoint called at 20250328_140404
+Added: {}
+Removed: {'test3': {'x': 179, 'y': 11, 'lastModified': '2025-03-28 14:04:04', 'nickname': 'New Item'}}
+Moved: {'test2': {'previous': {'x': 70, 'y': 307}, 'current': {'x': 32, 'y': 444}, 'lastModified': '2025-03-28 14:04:04'}, 'test1': {'previous': {'x': 31, 'y': 148}, 'current': {'x': 218, 'y': 23}, 'lastModified': '2025-03-28 14:04:04'}}
