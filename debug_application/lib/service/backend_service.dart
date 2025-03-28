@@ -5,30 +5,35 @@ import 'package:image_picker/image_picker.dart';
 import 'package:flutter/material.dart';
 
 class BackendService {
-  bool isLocalHost = false; // 스위치 상태를 저장하는 변수
   String serverAddress = "25.28.228.203"; // 기본 서버 주소
   String port = "9064"; // 기본 포트
+  String url = ""; // URL 저장 변수
 
   void updateServerSettings({
-    required bool isLocalHost,
     required String serverAddress,
     required String port,
   }) {
-    this.isLocalHost = isLocalHost;
     this.serverAddress = serverAddress;
     this.port = port;
   }
 
-  Future<bool> connectionSetting() async {
-    Uri url;
-    if (isLocalHost) {
-      url = Uri.parse("http://localhost:5000/connectionTest");
-    } else {
-      url = Uri.parse("http://$serverAddress:$port/connectionTest");
-    }
+  void updateUrlSettings({required String url}) {
+    this.url = url;
+  }
 
+  Uri _buildUri(String endpoint) {
+    if (url.isNotEmpty) {
+      return Uri.parse("https://$url/$endpoint");
+    } else {
+      return Uri.parse("http://$serverAddress:$port/$endpoint");
+    }
+  }
+
+  Future<bool> connectionSetting() async {
+    final uri = _buildUri("connectionTest");
     try {
-      final response = await http.get(url);
+      print(uri);
+      final response = await http.get(uri);
       return response.statusCode == 200;
     } catch (e) {
       print('Error: $e');
@@ -37,19 +42,12 @@ class BackendService {
   }
 
   Future<List<Map<String, String>>> fetchInventory() async {
-    Uri url;
-    if (isLocalHost) {
-      url = Uri.parse("http://localhost:5000/inventory");
-    } else {
-      url = Uri.parse("http://$serverAddress:$port/inventory");
-    }
-
+    final uri = _buildUri("inventory");
     try {
-      final response = await http.get(url);
+      final response = await http.get(uri);
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = json.decode(response.body);
 
-        // JSON 데이터 처리
         return data.entries.map((entry) {
           final item = entry.value;
           return {
@@ -71,16 +69,10 @@ class BackendService {
   }
 
   Future<void> uploadItem(Map<String, String> item) async {
-    Uri url;
-    if (isLocalHost) {
-      url = Uri.parse("http://localhost:5000/upload");
-    } else {
-      url = Uri.parse("http://$serverAddress:$port/upload");
-    }
-
+    final uri = _buildUri("upload");
     try {
       final response = await http.post(
-        url,
+        uri,
         headers: {'Content-Type': 'application/json'},
         body: json.encode(item),
       );
@@ -95,17 +87,9 @@ class BackendService {
   }
 
   Future<void> updateNickname(String qrCode, String newNickname) async {
-    Uri url;
-    if (isLocalHost) {
-      url = Uri.parse("http://localhost:5000/rename/$qrCode/$newNickname");
-    } else {
-      url = Uri.parse(
-        "http://$serverAddress:$port/rename/$qrCode/$newNickname",
-      );
-    }
-
+    final uri = _buildUri("rename/$qrCode/$newNickname");
     try {
-      final response = await http.post(url);
+      final response = await http.post(uri);
       if (response.statusCode == 200) {
         print('Nickname updated successfully');
       } else {
@@ -118,41 +102,32 @@ class BackendService {
 
   Future<bool> uploadImage(BuildContext context) async {
     try {
-      // 이미지 선택
       final picker = ImagePicker();
       final pickedFile = await picker.pickImage(source: ImageSource.gallery);
 
       if (pickedFile == null) {
         print('No image selected');
-        return false; // 이미지 선택 취소 시 false 반환
+        return false;
       }
 
       final file = File(pickedFile.path);
+      final uri = _buildUri("upload");
 
-      // 서버 URL 설정
-      Uri url;
-      if (isLocalHost) {
-        url = Uri.parse("http://localhost:5000/upload");
-      } else {
-        url = Uri.parse("http://$serverAddress:$port/upload");
-      }
-
-      // 이미지 업로드
-      final request = http.MultipartRequest('POST', url)
+      final request = http.MultipartRequest('POST', uri)
         ..files.add(await http.MultipartFile.fromPath('curr_image', file.path));
 
       final response = await request.send();
 
       if (response.statusCode == 200) {
         print('Image uploaded successfully');
-        return true; // 성공 시 true 반환
+        return true;
       } else {
         print('Failed to upload image: ${response.statusCode}');
-        return false; // 실패 시 false 반환
+        return false;
       }
     } catch (e) {
       print('Error uploading image: $e');
-      return false; // 실패 시 false 반환
+      return false;
     }
   }
 }

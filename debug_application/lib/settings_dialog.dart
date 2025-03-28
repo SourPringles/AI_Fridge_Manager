@@ -13,34 +13,49 @@ class SettingsDialog extends StatefulWidget {
 class _SettingsDialogState extends State<SettingsDialog> {
   late TextEditingController _serverController;
   late TextEditingController _portController;
+  late TextEditingController _urlController; // URL 입력 필드 컨트롤러
   String _connectionStatus = ""; // 연결 상태 메시지
   bool _isTestingConnection = false; // 연결 테스트 중 상태
   bool _isCloseButtonEnabled = false; // 닫기 버튼 활성화 상태
+  late int _selectedInputType; // 0: IP/Port, 1: URL
 
   @override
   void initState() {
     super.initState();
     _serverController = TextEditingController();
     _portController = TextEditingController();
-    _updateInputFields();
-  }
+    _urlController = TextEditingController();
 
-  void _updateInputFields() {
-    if (widget.backendService.isLocalHost) {
-      _serverController.text = "127.0.0.1";
-      _portController.text = "5000";
+    // 이전 설정값을 기반으로 초기화
+    if (widget.backendService.url.isNotEmpty) {
+      _selectedInputType = 1; // URL이 설정되어 있으면 URL 모드
+      _urlController.text = widget.backendService.url;
     } else {
+      _selectedInputType = 0; // 그렇지 않으면 IP/Port 모드
       _serverController.text = widget.backendService.serverAddress;
       _portController.text = widget.backendService.port;
     }
   }
 
+  void _updateInputFields() {
+    if (_selectedInputType == 0) {
+      _serverController.text = widget.backendService.serverAddress;
+      _portController.text = widget.backendService.port;
+    } else {
+      _urlController.text = widget.backendService.url;
+    }
+  }
+
   void _applySettings() {
-    widget.backendService.updateServerSettings(
-      isLocalHost: widget.backendService.isLocalHost,
-      serverAddress: _serverController.text,
-      port: _portController.text,
-    );
+    if (_selectedInputType == 0) {
+      widget.backendService.updateServerSettings(
+        serverAddress: _serverController.text,
+        port: _portController.text,
+      );
+      widget.backendService.updateUrlSettings(url: ""); // URL 초기화
+    } else {
+      widget.backendService.updateUrlSettings(url: _urlController.text);
+    }
   }
 
   Future<void> _checkConnection() async {
@@ -50,6 +65,9 @@ class _SettingsDialogState extends State<SettingsDialog> {
       _isCloseButtonEnabled = false; // 닫기 버튼 비활성화
     });
 
+    // 현재 선택된 모드에 따라 설정 적용
+    _applySettings();
+
     final isConnected = await widget.backendService.connectionSetting();
 
     setState(() {
@@ -58,6 +76,14 @@ class _SettingsDialogState extends State<SettingsDialog> {
           isConnected ? "Connection Successful" : "Connection Failed";
       _isCloseButtonEnabled = isConnected; // 연결 성공 시 닫기 버튼 활성화
     });
+  }
+
+  Future<void> _uploadImageAndFetchInventory(BuildContext context) async {
+    final isUploaded = await widget.backendService.uploadImage(context);
+    if (isUploaded) {
+      await widget.backendService
+          .fetchInventory(); // 이미지 업로드 성공 후 fetchInventory 호출
+    }
   }
 
   @override
@@ -70,50 +96,75 @@ class _SettingsDialogState extends State<SettingsDialog> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Row(
-                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Text('Use LocalHost: '),
-                  Switch(
-                    value: widget.backendService.isLocalHost,
-                    onChanged: (bool value) {
-                      setDialogState(() {
-                        widget.backendService.isLocalHost = value;
-                        _updateInputFields();
-                      });
-                      setState(() {}); // 다이얼로그 상태 업데이트
-                    },
+                  Expanded(
+                    child: RadioListTile<int>(
+                      title: const Text('IP/Port'),
+                      value: 0,
+                      groupValue: _selectedInputType,
+                      onChanged: (int? value) {
+                        setDialogState(() {
+                          _selectedInputType = value!;
+                          _updateInputFields();
+                        });
+                      },
+                    ),
+                  ),
+                  Expanded(
+                    child: RadioListTile<int>(
+                      title: const Text('URL'),
+                      value: 1,
+                      groupValue: _selectedInputType,
+                      onChanged: (int? value) {
+                        setDialogState(() {
+                          _selectedInputType = value!;
+                          _updateInputFields();
+                        });
+                      },
+                    ),
                   ),
                 ],
               ),
-              TextField(
-                controller: _serverController,
-                decoration: const InputDecoration(labelText: 'Server Address'),
-                enabled: !widget.backendService.isLocalHost,
-                onChanged: (value) {
-                  setDialogState(() {
-                    widget.backendService.serverAddress = value;
-                  });
-                },
-              ),
-              TextField(
-                controller: _portController,
-                decoration: const InputDecoration(labelText: 'Port'),
-                keyboardType: TextInputType.number,
-                enabled: !widget.backendService.isLocalHost,
-                onChanged: (value) {
-                  setDialogState(() {
-                    widget.backendService.port = value;
-                  });
-                },
-              ),
+              if (_selectedInputType == 0) ...[
+                TextField(
+                  controller: _serverController,
+                  decoration: const InputDecoration(
+                    labelText: 'Server Address',
+                  ),
+                  onChanged: (value) {
+                    setDialogState(() {
+                      widget.backendService.serverAddress = value;
+                    });
+                  },
+                ),
+                TextField(
+                  controller: _portController,
+                  decoration: const InputDecoration(labelText: 'Port'),
+                  keyboardType: TextInputType.number,
+                  onChanged: (value) {
+                    setDialogState(() {
+                      widget.backendService.port = value;
+                    });
+                  },
+                ),
+              ] else ...[
+                TextField(
+                  controller: _urlController,
+                  decoration: const InputDecoration(labelText: 'URL'),
+                  onChanged: (value) {
+                    setDialogState(() {
+                      widget.backendService.url = value;
+                    });
+                  },
+                ),
+              ],
               const SizedBox(height: 20),
               ElevatedButton(
                 onPressed:
                     _isTestingConnection
                         ? null // 비활성화 상태
                         : () async {
-                          _applySettings(); // 설정 적용
-                          await _checkConnection();
+                          await _checkConnection(); // 연결 테스트
                         },
                 child: Text(_isTestingConnection ? "연결중" : "Test Connection"),
               ),
@@ -139,8 +190,10 @@ class _SettingsDialogState extends State<SettingsDialog> {
         TextButton(
           onPressed:
               _isCloseButtonEnabled
-                  ? () {
+                  ? () async {
                     _applySettings(); // 설정 적용
+                    await widget.backendService
+                        .fetchInventory(); // fetchInventory 호출
                     Navigator.pop(context);
                   }
                   : null, // 비활성화 상태
