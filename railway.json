@@ -3,6 +3,6 @@
         "dockerfilePath": "./Dockerfile"
     },
     "deploy": {
-        "startCommand": "python API/main.py"
+        "startCommand": "python API/app.py"
     }
 }
